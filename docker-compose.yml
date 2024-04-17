@@ -68,7 +68,7 @@ services:
       - master_db
   
   proxysql:
-    image: severalnines/proxysql:2.0
+    image: severalnines/proxysql
     container_name: "database_proxy"
     restart: unless-stopped 
     volumes:
