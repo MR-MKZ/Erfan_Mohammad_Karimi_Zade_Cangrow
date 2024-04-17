@@ -6,14 +6,14 @@ services:
     volumes:
       - ./wordpress:/var/www/html
     environment:
-      WORDPRESS_DB_HOST: master_db
+      WORDPRESS_DB_HOST: proxysql:6033
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
       WORDPRESS_DB_USER: root
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
     networks:
       - cangrownet
     depends_on:
-      - replica_db
+      - proxysql
 
   wordpress_2:
     image: wordpress
@@ -22,7 +22,7 @@ services:
     volumes: 
       - ./wordpress:/var/www/html
     environment:
-      WORDPRESS_DB_HOST: master_db
+      WORDPRESS_DB_HOST: proxysql:6033
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
       WORDPRESS_DB_USER: root
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
@@ -66,9 +66,21 @@ services:
       - cangrownet
     depends_on:
       - master_db
+  
+  proxysql:
+    image: severalnines/proxysql:2.0
+    container_name: "database_proxy"
+    restart: unless-stopped 
+    volumes:
+      - ./proxysql/proxysql.cnf:/etc/proxysql.cnf
+    networks:
+      - cangrownet
+    depends_on:
+      - replica_db
+      - master_db
 
   load_balancer:
-    image: nginx
+    image: nginx:latest
     container_name: "load_balancer"
     restart: always
     volumes: 

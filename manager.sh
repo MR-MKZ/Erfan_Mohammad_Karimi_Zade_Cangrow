@@ -10,9 +10,10 @@ Help()
    echo
    echo "Syntax: manager.sh [command]"
    echo "commands:"
-   echo "start     setup your system and start containers"
-   echo "stop      stop containers"
-   echo "remove    remove containers"
+   echo "start        setup your system and start containers"
+   echo "stop         stop containers"
+   echo "remove       remove containers"
+   echo "db-queries   connection distribution overview for all hostgroups (you can use to check proxysql routing is ok or not)"
    echo
 }
 
@@ -42,13 +43,30 @@ StartContainers()
 
     chmod +x ./masterdb/initial.sh
     bash -c ./masterdb/initial.sh
-    
-    chmod +x ./replicadb/initial.sh
-    bash -c ./replicadb/initial.sh
 
-    echo "[Action]: Running containers started"
+    if [[ $? -eq 0 ]]; then
+        chmod +x ./replicadb/initial.sh
+        bash -c ./replicadb/initial.sh
 
-    docker compose up -d
+        if [[ $? -eq 0 ]]; then
+            chmod +x ./proxysql/initial.sh
+            bash -c ./proxysql/initial.sh
+
+            if [[ $? -eq 0 ]]; then
+                echo "[Action]: Running containers started"
+                docker compose up -d
+            else
+                echo "running proxysql configure file failed! please try again."
+                exit 1
+            fi
+        else
+            echo "running replicadb configure file failed! please try again."
+            exit 1
+        fi
+    else
+        echo "running masterdb configure file failed! please try again."
+        exit 1
+    fi
 }
 
 StopContainers()
@@ -66,6 +84,15 @@ RemoveContainers()
     rm -r -f ./replicadb/logs
 }
 
+ShowConnectionPoolTable()
+{
+    docker exec -it database_proxy mysql -uroot -p123456789 -hproxysql -P6032 -e 'select hostgroup, srv_host, status, ConnUsed, MaxConnUsed, Queries from stats.stats_mysql_connection_pool order by srv_host;'
+    if [[ $? -ne 0 ]]; then
+        echo "[!]: Is project running? try manager.sh start"
+        exit 1
+    fi
+}
+
 if [[ $(id -u) -ne 0 ]]; then
     echo "Please run program as root!"
     exit 1
@@ -76,6 +103,8 @@ else
         StopContainers
     elif [[ $1 = "remove" ]]; then
         RemoveContainers
+    elif [[ $1 = "db-queries" ]]; then
+        ShowConnectionPoolTable
     else
         Help
     fi
