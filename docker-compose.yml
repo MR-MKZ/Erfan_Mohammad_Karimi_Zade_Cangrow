@@ -1,4 +1,3 @@
-version: '3.7'
 services:
   wordpress_1:
     image: wordpress
@@ -7,14 +6,14 @@ services:
     volumes:
       - ./wordpress:/var/www/html
     environment:
-      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_HOST: master_db
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
-      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_USER: root
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
     networks:
       - cangrownet
     depends_on:
-      - db
+      - replica_db
 
   wordpress_2:
     image: wordpress
@@ -23,28 +22,50 @@ services:
     volumes: 
       - ./wordpress:/var/www/html
     environment:
-      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_HOST: master_db
       WORDPRESS_DB_NAME: ${WORDPRESS_DB_NAME}
-      WORDPRESS_DB_USER: ${WORDPRESS_DB_USER}
+      WORDPRESS_DB_USER: root
       WORDPRESS_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD}
     networks:
       - cangrownet
     depends_on:
       - wordpress_1
 
-  db:
-    image: mariadb
-    container_name: "mariadb"
+  master_db:
+    image: mariadb:latest
+    container_name: "masterdb"
     restart: always
-    ports:
-      - "3306:3306"
+    volumes:
+      - ./masterdb/mastercnf:/etc/mysql/conf.d:z
+      - ./masterdb/masterinit:/docker-entrypoint-initdb.d:z
+      - ./masterdb/logs:/var/lib/mysql
+    working_dir: /var/lib/mysql
     environment:
       MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
       MYSQL_ROOT_PASSWORD: ${WORDPRESS_DB_PASSWORD}
-      MYSQL_USER: ${WORDPRESS_DB_USER}
-      MYSQL_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      MYSQL_USER: root
+      MYSQL_INITDB_SKIP_TZINFO: "Y"
     networks:
       - cangrownet
+  
+  replica_db:
+    image: mariadb:latest
+    container_name: "replicadb"
+    restart: always  
+    volumes:
+      - ./replicadb/replicacnf:/etc/mysql/conf.d:z
+      - ./replicadb/replicainit:/docker-entrypoint-initdb.d:z
+      - ./replicadb/logs:/var/lib/mysql
+    working_dir: /var/lib/mysql
+    environment:
+      MYSQL_DATABASE: ${WORDPRESS_DB_NAME}
+      MYSQL_ROOT_PASSWORD: ${WORDPRESS_DB_PASSWORD}
+      MYSQL_USER: root
+      MYSQL_INITDB_SKIP_TZINFO: "Y"
+    networks:
+      - cangrownet
+    depends_on:
+      - master_db
 
   load_balancer:
     image: nginx
