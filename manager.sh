@@ -14,6 +14,7 @@ Help()
    echo "stop         stop containers"
    echo "remove       remove containers"
    echo "db-queries   connection distribution overview for all hostgroups (you can use to check proxysql routing is ok or not)"
+   echo "pull-theme   get new version of mkz-theme"
    echo
 }
 
@@ -54,6 +55,7 @@ StartContainers()
 
             if [[ $? -eq 0 ]]; then
                 echo "[Action]: Running containers started"
+                PullWordpressTheme
                 docker compose up -d
             else
                 echo "running proxysql configure file failed! please try again."
@@ -82,6 +84,7 @@ RemoveContainers()
     rm -r -f wordpress
     rm -r -f ./masterdb/logs
     rm -r -f ./replicadb/logs
+    rm -r -f ./wp/themes/*
 }
 
 ShowConnectionPoolTable()
@@ -91,6 +94,12 @@ ShowConnectionPoolTable()
         echo "[!]: Is project running? try manager.sh start"
         exit 1
     fi
+}
+
+PullWordpressTheme()
+{
+    chmod +x ./wp/pull-theme.sh
+    bash -c ./wp/pull-theme.sh
 }
 
 if [[ $(id -u) -ne 0 ]]; then
@@ -105,6 +114,8 @@ else
         RemoveContainers
     elif [[ $1 = "db-queries" ]]; then
         ShowConnectionPoolTable
+    elif [[ $1 = "pull-theme" ]]; then
+        PullWordpressTheme
     else
         Help
     fi
