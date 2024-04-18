@@ -2,7 +2,9 @@
 
 if [[ ! -d "replicadb/replicacnf" ]]; then
   mkdir replicadb/replicacnf
-elif [[ ! -d "replicadb/replicainit" ]]; then
+fi
+
+if [[ ! -d "replicadb/replicainit" ]]; then
   mkdir replicadb/replicainit
 fi
 
