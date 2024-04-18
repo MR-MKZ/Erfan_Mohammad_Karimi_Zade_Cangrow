@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [[ ! -d "replicadb/replicacnf" ]]; then
+  mkdir replicadb/replicacnf
+elif [[ ! -d "replicadb/replicainit" ]]; then
+  mkdir replicadb/replicainit
+fi
+
 cat > replicadb/replicacnf/replicadb.cnf << EOF
 [mariadb]
 server_id=2            
