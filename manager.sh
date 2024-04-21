@@ -27,23 +27,14 @@ StartContainers() {
 
     fi
 
-    clear
+    docker compose &> /dev/null
 
-    if [[ $(docker compose &> /dev/null) -ne 0 ]]; then
+    if [[ $? -ne 0 ]]; then
         echo "[Action]: Installing docker compose plugin."
         mkdir -p ~/.docker/cli-plugins/
         curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
         chmod +x ~/.docker/cli-plugins/docker-compose
         apt install docker-compose
-        bash -c 'cat > /etc/docker/daemon.json <<EOF
-        {
-        "insecure-registries" : ["https://docker.arvancloud.ir"],
-        "registry-mirrors": ["https://docker.arvancloud.ir"]
-        }
-        EOF'
-        docker logout
-        systemctl daemon-reload
-        systemctl restart docker
     fi
 
     chmod +x ./masterdb/initial.sh
