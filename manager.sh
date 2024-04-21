@@ -109,6 +109,11 @@ RemoveContainers() {
     rm -r -f ./masterdb/logs
     rm -r -f ./replicadb/logs
     rm -r -f ./wp/themes/*
+    systemctl stop webhook.service
+    systemctl disable webhook.service
+    rm /etc/systemd/system/webhook.service
+    systemctl daemon-reload
+    systemctl reset-failed
 }
 
 ShowConnectionPoolTable() {
