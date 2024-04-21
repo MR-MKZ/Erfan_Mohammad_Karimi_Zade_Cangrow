@@ -1,0 +1,32 @@
+[
+    {
+      "id": "redeploy-theme",
+      "execute-command": "/opt/Erfan_Mohammad_Karimi_Zade_Cangrow/wp/pull-theme.sh",
+      "command-working-directory": "/opt/Erfan_Mohammad_Karimi_Zade_Cangrow",
+      "response-message": "Deployed...",
+      "trigger-rule": {
+        "and": [
+          {
+            "match": {
+              "type": "payload-hmac-sha256",
+              "secret": "123456789",
+              "parameter": {
+                "source": "header",
+                "name": "X-Hub-Signature-256"
+              }
+            }
+          },
+          {
+            "match": {
+              "type": "value",
+              "value": "refs/heads/master",
+              "parameter": {
+                "source": "payload",
+                "name": "ref"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]

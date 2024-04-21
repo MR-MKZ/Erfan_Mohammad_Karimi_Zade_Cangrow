@@ -26,11 +26,13 @@ StartContainers() {
 
     fi
 
-    crontab -l &> /dev/null
+    webhook &> /dev/null
 
     if [[ $? -ne 0 ]]; then
-        apt update && apt upgrade -y
-        apt install cron -y
+        wget https://github.com/adnanh/webhook/releases/download/2.8.1/webhook-linux-amd64.tar.gz
+        tar -xvf webhook-linux-amd64.tar.gz
+        mv webhook-linux-amd64/webhook /usr/local/bin
+        rm -r -f webhook-linux-amd64
     fi
 
     docker compose &> /dev/null
@@ -58,11 +60,11 @@ StartContainers() {
                 echo "[Action]: Running containers started"
                 PullWordpressTheme
                 docker compose up -d
-                crontab -r &> /dev/null
-                COMMAND="cd $PWD && ./wp/pull-theme.sh &>> ./wp/pull-theme.log"
-                SCHEDULE="*/5 * * * *"
-                date &>> ./wp/pull-theme.log
-                (crontab -l; echo "$SCHEDULE $COMMAND") | crontab -
+                # crontab -r &> /dev/null
+                # COMMAND="cd $PWD && ./wp/pull-theme.sh &>> ./wp/pull-theme.log"
+                # SCHEDULE="*/5 * * * *"
+                # date &>> ./wp/pull-theme.log
+                # (crontab -l; echo "$SCHEDULE $COMMAND") | crontab -
             else
                 echo "running proxysql configure file failed! please try again."
                 exit 1
@@ -89,8 +91,8 @@ RemoveContainers() {
     rm -r -f ./masterdb/logs
     rm -r -f ./replicadb/logs
     rm -r -f ./wp/themes/*
-    crontab -r &> /dev/null
-    rm -r -f ./wp/pull-theme.log
+    # crontab -r &> /dev/null
+    # rm -r -f ./wp/pull-theme.log
 }
 
 ShowConnectionPoolTable() {
