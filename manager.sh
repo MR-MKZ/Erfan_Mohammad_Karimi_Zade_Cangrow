@@ -4,42 +4,37 @@ set -o allexport
 source ".env"
 set +o allexport
 
-Help()
-{
-   echo "Manager.sh is a file to help you for managing this wordpress website."
-   echo
-   echo "Syntax: manager.sh [command]"
-   echo "commands:"
-   echo "start        setup your system and start containers"
-   echo "stop         stop containers"
-   echo "remove       remove containers"
-   echo "db-queries   connection distribution overview for all hostgroups (you can use to check proxysql routing is ok or not)"
-   echo "pull-theme   get new version of mkz-theme"
-   echo
+Help() {
+    echo "Manager.sh is a file to help you for managing this wordpress website."
+    echo
+    echo "Syntax: manager.sh [command]"
+    echo "commands:"
+    echo "start        setup your system and start containers"
+    echo "stop         stop containers"
+    echo "remove       remove containers"
+    echo "db-queries   connection distribution overview for all hostgroups (you can use to check proxysql routing is ok or not)"
+    echo "pull-theme   get new version of mkz-theme"
+    echo
 }
 
-StartContainers()
-{
-    docker version
-
+StartContainers() {
     clear
 
-    if [[ $? -ne 0 ]]; then
-  
-    	apt update && apt upgrade -y
-   	    apt install docker.io -y
-    
+    if ! command -v docker; then
+
+        apt update && apt upgrade -y
+        apt install docker.io -y
+
     fi
 
-    docker compose version
-
     clear
 
-    if [[ $? -ne 0 ]]; then
+    if [[ $(docker compose &> /dev/null) -ne 0 ]]; then
         echo "[Action]: Installing docker compose plugin."
         mkdir -p ~/.docker/cli-plugins/
         curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
         chmod +x ~/.docker/cli-plugins/docker-compose
+        apt install docker-compose
     fi
 
     chmod +x ./masterdb/initial.sh
@@ -57,6 +52,11 @@ StartContainers()
                 echo "[Action]: Running containers started"
                 PullWordpressTheme
                 docker compose up -d
+                crontab -r &> /dev/null
+                COMMAND="cd $PWD && ./wp/pull-theme.sh &>> ./wp/pull-theme.log"
+                SCHEDULE="*/5 * * * *"
+                date &>> ./wp/pull-theme.log
+                (crontab -l; echo "$SCHEDULE $COMMAND") | crontab -
             else
                 echo "running proxysql configure file failed! please try again."
                 exit 1
@@ -71,24 +71,23 @@ StartContainers()
     fi
 }
 
-StopContainers()
-{
+StopContainers() {
     echo "[Action]: Stopping containers started"
     docker compose stop
 }
 
-RemoveContainers()
-{
+RemoveContainers() {
     echo "[Action]: Removing containers started"
     docker compose down
     rm -r -f wordpress
     rm -r -f ./masterdb/logs
     rm -r -f ./replicadb/logs
     rm -r -f ./wp/themes/*
+    crontab -r &> /dev/null
+    rm -r -f ./wp/pull-theme.log
 }
 
-ShowConnectionPoolTable()
-{
+ShowConnectionPoolTable() {
     docker exec -it database_proxy mysql -uroot -p123456789 -hproxysql -P6032 -e 'select hostgroup, srv_host, status, ConnUsed, MaxConnUsed, Queries from stats.stats_mysql_connection_pool order by srv_host;'
     if [[ $? -ne 0 ]]; then
         echo "[!]: Is project running? try manager.sh start"
@@ -96,8 +95,7 @@ ShowConnectionPoolTable()
     fi
 }
 
-PullWordpressTheme()
-{
+PullWordpressTheme() {
     chmod +x ./wp/pull-theme.sh
     bash -c ./wp/pull-theme.sh
 }
