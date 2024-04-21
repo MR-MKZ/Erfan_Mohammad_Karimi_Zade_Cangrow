@@ -18,13 +18,19 @@ Help() {
 }
 
 StartContainers() {
-    clear
 
     if ! command -v docker; then
 
         apt update && apt upgrade -y
         apt install docker.io -y
 
+    fi
+
+    crontab -l &> /dev/null
+
+    if [[ $? -ne 0 ]]; then
+        apt update && apt upgrade -y
+        apt install cron -y
     fi
 
     docker compose &> /dev/null
