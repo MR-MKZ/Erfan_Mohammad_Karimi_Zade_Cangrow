@@ -26,13 +26,14 @@ StartContainers() {
 
     fi
 
-    webhook &> /dev/null
+    webhook -version &> /dev/null
 
     if [[ $? -ne 0 ]]; then
         wget https://github.com/adnanh/webhook/releases/download/2.8.1/webhook-linux-amd64.tar.gz
         tar -xvf webhook-linux-amd64.tar.gz
         mv webhook-linux-amd64/webhook /usr/local/bin
         rm -r -f webhook-linux-amd64
+        rm -r -f webhook-linux-amd64.tar.gz
     fi
 
     docker compose &> /dev/null
