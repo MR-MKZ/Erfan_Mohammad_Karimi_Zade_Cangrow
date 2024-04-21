@@ -17,25 +17,8 @@ Help() {
     echo
 }
 
-StartContainers() {
-
-    if ! command -v docker; then
-
-        apt update && apt upgrade -y
-        apt install docker.io -y
-
-    fi
-
-    webhook -version &> /dev/null
-
-    if [[ $? -ne 0 ]]; then
-        wget https://github.com/adnanh/webhook/releases/download/2.8.1/webhook-linux-amd64.tar.gz
-        tar -xvf webhook-linux-amd64.tar.gz
-        mv webhook-linux-amd64/webhook /usr/local/bin
-        rm -r -f webhook-linux-amd64
-        rm -r -f webhook-linux-amd64.tar.gz
-        mkdir /opt/webhooks
-        cp hooks.json /opt/webhooks
+CreateWebhookService()
+{
 cat > /etc/systemd/system/webhook.service << EOF
 [Unit]
 Description=Github Webhook
@@ -53,14 +36,45 @@ ExecStart=/usr/local/bin/webhook -verbose -hotreload -hooks /opt/webhooks/hooks.
 [Install]
 WantedBy=multi-user.target
 EOF
-        chmod 644 /etc/systemd/system/webhook.service
-        systemctl enable webhook.service
-        systemctl start webhook.service
+chmod 644 /etc/systemd/system/webhook.service
+systemctl enable webhook.service
+systemctl start webhook.service
+}
+
+StartContainers() {
+
+    if ! command -v docker; then
+        clear
+        apt update && apt upgrade -y
+        apt install docker.io -y
+
+    fi
+
+    webhook -version &> /dev/null
+
+    if [[ $? -ne 0 ]]; then
+        clear
+        wget https://github.com/adnanh/webhook/releases/download/2.8.1/webhook-linux-amd64.tar.gz
+        tar -xvf webhook-linux-amd64.tar.gz
+        mv webhook-linux-amd64/webhook /usr/local/bin
+        rm -r -f webhook-linux-amd64
+        rm -r -f webhook-linux-amd64.tar.gz
+        mkdir /opt/webhooks
+        cp hooks.json /opt/webhooks
+        CreateWebhookService
+    fi
+
+    systemctl list-units --full -all | grep -Fq "webhook.service"
+
+    if [[ $? -ne 0 ]]; then
+        clear
+        CreateWebhookService
     fi
 
     docker compose &> /dev/null
 
     if [[ $? -ne 0 ]]; then
+        clear
         echo "[Action]: Installing docker compose plugin."
         mkdir -p ~/.docker/cli-plugins/
         curl -SL https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
@@ -82,6 +96,7 @@ EOF
             if [[ $? -eq 0 ]]; then
                 echo "[Action]: Running containers started"
                 PullWordpressTheme
+                clear
                 docker compose up -d
             else
                 echo "running proxysql configure file failed! please try again."
