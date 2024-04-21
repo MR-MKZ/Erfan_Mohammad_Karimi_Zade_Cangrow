@@ -34,6 +34,28 @@ StartContainers() {
         mv webhook-linux-amd64/webhook /usr/local/bin
         rm -r -f webhook-linux-amd64
         rm -r -f webhook-linux-amd64.tar.gz
+        mkdir /opt/webhooks
+        cp hooks.json /opt/webhooks
+cat > /etc/systemd/system/webhook.service << EOF
+[Unit]
+Description=Github Webhook
+Documentation=https://github.com/adnanh/webhook
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+Restart=on-failure
+RestartSec=5
+ExecStart=/usr/loca/bin/webhook -verbose -hotreload -hooks /opt/webhooks/hooks.json -port 9000 -http-methods post
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        chmod 644 /etc/systemd/system/webhook.service
+        systemctl enable webhook.service
+        systemctl start webhook.service
     fi
 
     docker compose &> /dev/null
@@ -61,11 +83,6 @@ StartContainers() {
                 echo "[Action]: Running containers started"
                 PullWordpressTheme
                 docker compose up -d
-                # crontab -r &> /dev/null
-                # COMMAND="cd $PWD && ./wp/pull-theme.sh &>> ./wp/pull-theme.log"
-                # SCHEDULE="*/5 * * * *"
-                # date &>> ./wp/pull-theme.log
-                # (crontab -l; echo "$SCHEDULE $COMMAND") | crontab -
             else
                 echo "running proxysql configure file failed! please try again."
                 exit 1
@@ -92,8 +109,6 @@ RemoveContainers() {
     rm -r -f ./masterdb/logs
     rm -r -f ./replicadb/logs
     rm -r -f ./wp/themes/*
-    # crontab -r &> /dev/null
-    # rm -r -f ./wp/pull-theme.log
 }
 
 ShowConnectionPoolTable() {
