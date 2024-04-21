@@ -48,7 +48,7 @@ Type=simple
 User=root
 Restart=on-failure
 RestartSec=5
-ExecStart=/usr/loca/bin/webhook -verbose -hotreload -hooks /opt/webhooks/hooks.json -port 9000 -http-methods post
+ExecStart=/usr/local/bin/webhook -verbose -hotreload -hooks /opt/webhooks/hooks.json -port 9000 -http-methods post
 
 [Install]
 WantedBy=multi-user.target
